@@ -1,0 +1,32 @@
+version = 0.1
+
+[default.global.parameters]
+stack_name = "aws-vpc-demo-backend"
+
+[default.build.parameters]
+cached = true
+parallel = true
+
+[default.validate.parameters]
+lint = false
+region = "ap-northeast-1"
+
+[default.deploy.parameters]
+region = "ap-northeast-1"
+capabilities = "CAPABILITY_IAM"
+confirm_changeset = true
+resolve_s3 = true
+s3_prefix = "aws-vpc-demo-backend"
+parameter_overrides = [
+  "FrontendOrigin=https://your-project.pages.dev",
+  "VpcSubnetIds=subnet-xxxxxxxxxxxxxxxxx",
+  "VpcSecurityGroupIds=sg-xxxxxxxxxxxxxxxxx",
+  "DatabaseHost=your-rds-endpoint.ap-northeast-1.rds.amazonaws.com",
+  "DatabasePort=5432",
+  "DatabaseName=postgres",
+  "DatabaseUsername=appuser",
+  "DatabaseSecretArn=arn:aws:secretsmanager:ap-northeast-1:123456789012:secret:rds!cluster-example"
+]
+
+[default.package.parameters]
+resolve_s3 = true

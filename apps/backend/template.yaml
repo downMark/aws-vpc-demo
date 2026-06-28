@@ -1,0 +1,105 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Lambda and HTTP API deployment for aws-vpc-demo backend.
+
+Parameters:
+  FrontendOrigin:
+    Type: String
+    Default: https://aws-vpc-demo-frontend.pages.dev
+    Description: Cloudflare Pages origin allowed by CORS.
+  DatabaseHost:
+    Type: String
+    Description: PostgreSQL host name or cluster endpoint.
+  DatabasePort:
+    Type: Number
+    Default: 5432
+    Description: PostgreSQL port.
+  DatabaseName:
+    Type: String
+    Default: github_profile
+    Description: PostgreSQL database name.
+  DatabaseUsername:
+    Type: String
+    Default: appuser
+    Description: PostgreSQL username.
+  DatabaseSecretArn:
+    Type: String
+    NoEcho: true
+    Description: Secrets Manager secret ARN containing the PostgreSQL password field.
+  VpcSubnetIds:
+    Type: CommaDelimitedList
+    Description: Private subnet IDs for Lambda. Use subnets that can reach the private RDS instance and NAT/GitHub as needed.
+  VpcSecurityGroupIds:
+    Type: CommaDelimitedList
+    Description: Security group IDs for Lambda. The RDS security group should allow PostgreSQL from this security group.
+
+Globals:
+  Function:
+    Runtime: nodejs20.x
+    Architectures:
+      - arm64
+    Timeout: 15
+    MemorySize: 512
+    Tracing: Active
+    Environment:
+      Variables:
+        NODE_OPTIONS: --enable-source-maps
+
+Resources:
+  HttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      CorsConfiguration:
+        AllowOrigins:
+          - !Ref FrontendOrigin
+        AllowMethods:
+          - GET
+          - POST
+          - PATCH
+          - DELETE
+          - OPTIONS
+        AllowHeaders:
+          - Content-Type
+          - Authorization
+
+  BackendFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Handler: src/lambda.handler
+      Description: Hono API for GitHub profile manager
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - AWSLambdaVPCAccessExecutionRole
+        - Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref DatabaseSecretArn
+      VpcConfig:
+        SecurityGroupIds: !Ref VpcSecurityGroupIds
+        SubnetIds: !Ref VpcSubnetIds
+      Environment:
+        Variables:
+          DB_HOST: !Ref DatabaseHost
+          DB_PORT: !Ref DatabasePort
+          DB_NAME: !Ref DatabaseName
+          DB_USERNAME: !Ref DatabaseUsername
+          DB_SECRET_ARN: !Ref DatabaseSecretArn
+      Events:
+        ApiProxy:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+            Path: /{proxy+}
+            Method: ANY
+    Metadata:
+      BuildMethod: makefile
+
+Outputs:
+  ApiUrl:
+    Description: HTTP API Gateway endpoint for the backend.
+    Value: !Sub https://${HttpApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}/
+  BackendFunctionName:
+    Description: Lambda function name.
+    Value: !Ref BackendFunction

@@ -1,0 +1,6 @@
+name = "aws-vpc-demo-frontend"
+pages_build_output_dir = "dist"
+compatibility_date = "2026-06-27"
+
+[vars]
+VITE_API_BASE_URL = "https://rsbbhenigj.execute-api.ap-northeast-1.amazonaws.com"
