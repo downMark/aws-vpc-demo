@@ -18,7 +18,16 @@ export const operationLogs = pgTable('operation_logs', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 })
 
+export const testNotes = pgTable('test_notes', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  title: varchar('title', { length: 120 }).notNull(),
+  content: text('content').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+})
+
 export type Token = typeof tokens.$inferSelect
 export type NewToken = typeof tokens.$inferInsert
 export type OperationLog = typeof operationLogs.$inferSelect
 export type NewOperationLog = typeof operationLogs.$inferInsert
+export type TestNote = typeof testNotes.$inferSelect
+export type NewTestNote = typeof testNotes.$inferInsert

@@ -1,6 +1,7 @@
 import { BrowserRouter, NavLink, Route, Routes } from 'react-router-dom'
 import TokenManager from './pages/TokenManager'
 import { ProfileEditor } from './pages/ProfileEditor'
+import { LinkTest } from './pages/LinkTest'
 
 function App() {
   return (
@@ -31,6 +32,16 @@ function App() {
               >
                 Profile 编辑
               </NavLink>
+              <NavLink
+                to="/link-test"
+                className={({ isActive }) =>
+                  `text-sm font-medium px-3 py-1.5 rounded-md transition-colors ${
+                    isActive ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:text-gray-900'
+                  }`
+                }
+              >
+                链路测试
+              </NavLink>
             </nav>
           </div>
         </header>
@@ -38,6 +49,7 @@ function App() {
           <Routes>
             <Route path="/" element={<TokenManager />} />
             <Route path="/profile" element={<ProfileEditor />} />
+            <Route path="/link-test" element={<LinkTest />} />
           </Routes>
         </main>
       </div>

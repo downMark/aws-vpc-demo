@@ -26,3 +26,10 @@ export interface UpdateProfileInput {
   blog?: string
   twitter_username?: string
 }
+
+export interface TestNote {
+  id: string
+  title: string
+  content: string
+  createdAt: string
+}

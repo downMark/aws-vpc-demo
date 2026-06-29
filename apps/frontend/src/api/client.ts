@@ -1,4 +1,4 @@
-import type { MaskedToken, GitHubProfile, UpdateProfileInput } from '../types'
+import type { MaskedToken, GitHubProfile, UpdateProfileInput, TestNote } from '../types'
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '') ?? ''
 const BASE = `${API_BASE}/api`
@@ -41,5 +41,16 @@ export async function updateProfile(
   return request<GitHubProfile>(`/github/profile?tokenId=${encodeURIComponent(tokenId)}`, {
     method: 'PATCH',
     body: JSON.stringify(data),
+  })
+}
+
+export async function fetchTestNotes(): Promise<TestNote[]> {
+  return request<TestNote[]>('/test-notes')
+}
+
+export async function createTestNote(title: string, content: string): Promise<TestNote> {
+  return request<TestNote>('/test-notes', {
+    method: 'POST',
+    body: JSON.stringify({ title, content }),
   })
 }
