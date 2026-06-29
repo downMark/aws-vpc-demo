@@ -1,0 +1,75 @@
+name: Deploy Backend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/backend/**'
+      - '.github/workflows/deploy-backend.yml'
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/backend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.11.0
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Setup SAM
+        uses: aws-actions/setup-sam@v2
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build TypeScript
+        run: pnpm build
+
+      - name: Validate SAM template
+        run: sam validate
+
+      - name: Build SAM app
+        run: sam build
+
+      - name: Deploy SAM app
+        run: |
+          sam deploy \
+            --stack-name "${{ vars.BACKEND_STACK_NAME }}" \
+            --region "${{ vars.AWS_REGION }}" \
+            --capabilities CAPABILITY_IAM \
+            --resolve-s3 \
+            --s3-prefix "${{ vars.BACKEND_STACK_NAME }}" \
+            --no-confirm-changeset \
+            --no-fail-on-empty-changeset \
+            --parameter-overrides \
+              FrontendOrigin="${{ vars.FRONTEND_ORIGIN }}" \
+              VpcSubnetIds="${{ vars.VPC_SUBNET_IDS }}" \
+              VpcSecurityGroupIds="${{ vars.VPC_SECURITY_GROUP_IDS }}" \
+              DatabaseHost="${{ vars.DATABASE_HOST }}" \
+              DatabasePort="${{ vars.DATABASE_PORT }}" \
+              DatabaseName="${{ vars.DATABASE_NAME }}" \
+              DatabaseUsername="${{ vars.DATABASE_USERNAME }}" \
+              DatabaseSecretArn="${{ secrets.DATABASE_SECRET_ARN }}"
