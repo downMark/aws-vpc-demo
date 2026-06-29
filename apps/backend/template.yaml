@@ -96,6 +96,34 @@ Resources:
     Metadata:
       BuildMethod: makefile
 
+  MigrationFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Handler: src/migrate.handler
+      Description: Runs Drizzle migrations for the backend database
+      Timeout: 60
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - AWSLambdaVPCAccessExecutionRole
+        - Statement:
+            - Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: !Ref DatabaseSecretArn
+      VpcConfig:
+        SecurityGroupIds: !Ref VpcSecurityGroupIds
+        SubnetIds: !Ref VpcSubnetIds
+      Environment:
+        Variables:
+          DB_HOST: !Ref DatabaseHost
+          DB_PORT: !Ref DatabasePort
+          DB_NAME: !Ref DatabaseName
+          DB_USERNAME: !Ref DatabaseUsername
+          DB_SECRET_ARN: !Ref DatabaseSecretArn
+    Metadata:
+      BuildMethod: makefile
+
 Outputs:
   ApiUrl:
     Description: HTTP API Gateway endpoint for the backend.
@@ -103,3 +131,6 @@ Outputs:
   BackendFunctionName:
     Description: Lambda function name.
     Value: !Ref BackendFunction
+  MigrationFunctionName:
+    Description: Lambda function name for database migrations.
+    Value: !Ref MigrationFunction

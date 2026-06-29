@@ -3,6 +3,6 @@ dist/
 .env
 *.local
 .DS_Store
-drizzle/
+/drizzle/
 .aws-sam/
 apps/backend/samconfig.toml

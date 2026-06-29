@@ -134,6 +134,7 @@ AWS 网络和数据库由你在控制台或其它 IaC 中创建并维护。`apps
 
 - HTTP API Gateway
 - Backend Lambda
+- Migration Lambda
 
 部署 Lambda 时需要传入你手动创建好的资源：
 
@@ -194,20 +195,22 @@ pnpm install
 pnpm build
 ```
 
-### 数据库初始化
+### 数据库迁移
 
-如果 RDS 在私有子网内，公网不能直接访问。首次部署后需要在能访问 VPC 的环境里执行 Drizzle migration，例如：
+RDS 在私有子网内，GitHub Actions runner 不直接连接数据库。后端部署会先通过 SAM 更新 Lambda，然后调用同 VPC 内的 Migration Lambda 执行 Drizzle migrations。
 
-- 临时创建一个同 VPC 的 migration Lambda
-- 使用 VPN / bastion / SSM 进入 VPC 后执行
-- 在后续模板中补一个专门的 migration job
+修改表结构时：
 
-当前项目本地命令仍是：
+1. 修改 `apps/backend/src/db/schema.ts`
+2. 生成 migration：
 
 ```bash
 cd apps/backend
-pnpm db:push
+pnpm db:generate
 ```
+
+3. 提交 `apps/backend/drizzle/` 下新增的 migration 文件
+4. 运行 `Deploy Backend` workflow，部署后会自动执行 migration
 
 ### 后续修改
 

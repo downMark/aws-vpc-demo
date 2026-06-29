@@ -73,3 +73,43 @@ jobs:
               DatabaseName="${{ vars.DATABASE_NAME }}" \
               DatabaseUsername="${{ vars.DATABASE_USERNAME }}" \
               DatabaseSecretArn="${{ secrets.DATABASE_SECRET_ARN }}"
+
+      - name: Read stack outputs
+        id: stack
+        working-directory: .
+        run: |
+          MIGRATION_FUNCTION_NAME=$(aws cloudformation describe-stacks \
+            --stack-name "${{ vars.BACKEND_STACK_NAME }}" \
+            --region "${{ vars.AWS_REGION }}" \
+            --query "Stacks[0].Outputs[?OutputKey=='MigrationFunctionName'].OutputValue" \
+            --output text)
+          API_URL=$(aws cloudformation describe-stacks \
+            --stack-name "${{ vars.BACKEND_STACK_NAME }}" \
+            --region "${{ vars.AWS_REGION }}" \
+            --query "Stacks[0].Outputs[?OutputKey=='ApiUrl'].OutputValue" \
+            --output text)
+          echo "migration_function_name=$MIGRATION_FUNCTION_NAME" >> "$GITHUB_OUTPUT"
+          echo "api_url=${API_URL%/}" >> "$GITHUB_OUTPUT"
+
+      - name: Run database migrations
+        working-directory: .
+        run: |
+          aws lambda invoke \
+            --function-name "${{ steps.stack.outputs.migration_function_name }}" \
+            --region "${{ vars.AWS_REGION }}" \
+            --cli-binary-format raw-in-base64-out \
+            --payload '{}' \
+            migration-output.json \
+            > migration-response.json
+          cat migration-response.json
+          cat migration-output.json
+          if jq -e '.FunctionError // empty' migration-response.json > /dev/null; then
+            exit 1
+          fi
+          jq -e '.ok == true' migration-output.json > /dev/null
+
+      - name: Verify backend
+        working-directory: .
+        run: |
+          curl --fail --silent --show-error "${{ steps.stack.outputs.api_url }}/health"
+          curl --fail --silent --show-error "${{ steps.stack.outputs.api_url }}/api/tokens"
